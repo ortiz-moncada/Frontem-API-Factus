@@ -41,7 +41,7 @@ import { useQuasar } from 'quasar';
 import { ref } from 'vue';
 import Swal from 'sweetalert2';
 import { useAdminStore} from '../store/administrador.js';
-import { postDataurl } from '../../services/apiclient.js';
+import { postDataurl } from '../services/apiclient.js';
 import { router } from '../routes/routes.js';
 
 

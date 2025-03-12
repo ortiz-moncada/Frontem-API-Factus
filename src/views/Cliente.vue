@@ -10,7 +10,7 @@
               <img class="imgC" src="https://cdn-icons-png.flaticon.com/128/6676/6676016.png" alt="">
             </h2>
            
-            <q-btn class="mas" label="+" @click="mas" />
+            <q-btn class="mas" label="new ➕" @click="mas" />
             <div class="card">
         <q-card class="mycard" v-if="mostrarCarta">
           <q-card-section>
@@ -70,11 +70,11 @@
         <tbody>
           <tr v-for="(cliente, index) in clientes" :key="index">
             <td class="text-left">{{ cliente.nombre }}</td>
-            <td class="text-right">{{ cliente.id }}</td>
             <td class="text-right">{{ cliente.fecha }}</td>
             <td class="text-right">{{ cliente.documento }}</td>
             <td class="text-right">
-              <q-btn icon="visibility" color="blue" flat @click="eliminarCliente(index)" />
+              <q-btn icon="visibility" color="blue-4" flat @click="verCliente(index)" />
+              <q-btn icon="edit_square" color="blue-7" flat @click="editarCliente(index)" />
             </td>
           </tr>
         </tbody>
@@ -250,6 +250,7 @@ import { ref, onMounted } from 'vue'
 import { useAdminStore } from '../store/administrador';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
+import apiCliente from '../plugins/axios'; 
 import Swal from 'sweetalert2';
 import { useQuasar } from 'quasar';
 
@@ -282,11 +283,10 @@ const mostrarCarta = ref(false);
 // **Función para obtener clientes desde la API**
 async function getClientes() {
   try {
-    const response = await axios.get('http://localhost:3999/factus/customer/customer');
+    const response = await apiCliente.get('/customer/customer');
 
     // Asegurar que los datos sean asignados correctamente
     clientes.value = response.data.map(cliente => ({
-      id: cliente._id,  
       nombre:cliente.company || cliente.trade_name || 'Sin Nombre', 
       fecha: new Date().toLocaleDateString(), 
       documento: cliente.identification, 
@@ -354,7 +354,7 @@ function facturas(){
     
     }
 
-    function cliente(){
+    function item(){
       router.replace("/items")
     
     }
