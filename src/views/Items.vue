@@ -202,10 +202,11 @@
 </style>
       
     <script setup>
-    import { ref } from 'vue'
+    import { ref, onMounted } from 'vue'
     import { useAdminStore } from '../store/administrador';
     import { useRouter } from 'vue-router';
     import Swal from 'sweetalert2'
+    import axios from 'axios';
     
     const store= useAdminStore()
     const userName= store.userName
@@ -221,7 +222,25 @@
 
 
   
-    
+    async function getItems() {
+  try {
+    const response = await axios.get('http://localhost:3999/factus/items/items');
+
+    // Asegurar que los datos sean asignados correctamente
+    items.value = response.data.map(items => ({
+      id: items.unit_measure_id,  
+      nombre: items.name || 'Sin Nombre', 
+      precio: items.price, 
+      impuesto: items.tax_rate, 
+    }));
+
+    console.log("Items cargados:", items.value); // Verifica los datos en la consola
+  } catch (error) {
+    console.error("Error al obtener items:", error);
+    Swal.fire("Error", "No se pudieron cargar los items", "error");
+  }
+}
+
     
     function toggleRightDrawer () {
       rightDrawerOpen.value = !rightDrawerOpen.value
@@ -273,7 +292,7 @@ function registrar() {
     return;
   }
 
-  // Agregar cliente
+  // Agregar 
  items.value.push({
   id: items.value.length + 1,
       nombre: nombre.value,
@@ -302,6 +321,9 @@ function registrar() {
   timer: 1500
 });
 }
+onMounted(() => {
+  getItems();
+});
 
     </script>
     

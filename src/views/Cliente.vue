@@ -63,7 +63,7 @@
             <th class="text-left">CLIENTE</th>
             <th class="text-right">ID</th>
             <th class="text-right">FECHA</th>
-            <th class="text-right">TOTAL</th>
+            <th class="text-right">DOCUMENTO</th>
             <th class="text-right">OPCIONES</th>
           </tr>
         </thead>
@@ -72,7 +72,7 @@
             <td class="text-left">{{ cliente.nombre }}</td>
             <td class="text-right">{{ cliente.id }}</td>
             <td class="text-right">{{ cliente.fecha }}</td>
-            <td class="text-right">{{ cliente.total }}</td>
+            <td class="text-right">{{ cliente.documento }}</td>
             <td class="text-right">
               <q-btn icon="visibility" color="blue" flat @click="eliminarCliente(index)" />
             </td>
@@ -287,9 +287,9 @@ async function getClientes() {
     // Asegurar que los datos sean asignados correctamente
     clientes.value = response.data.map(cliente => ({
       id: cliente._id,  
-      nombre: cliente.company || cliente.trade_name || 'Sin Nombre', 
+      nombre:cliente.company || cliente.trade_name || 'Sin Nombre', 
       fecha: new Date().toLocaleDateString(), 
-      total: cliente.identification, 
+      documento: cliente.identification, 
     }));
 
     console.log("Clientes cargados:", clientes.value); // Verifica los datos en la consola
@@ -348,6 +348,16 @@ async function registrar() {
     loading.value = false;
   }
 }
+
+function facturas(){
+      router.replace("/factura")
+    
+    }
+
+    function cliente(){
+      router.replace("/items")
+    
+    }
 
 // **Cargar clientes al iniciar**
 onMounted(() => {
