@@ -1,14 +1,14 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
-import Login from '../views/Login.vue';
-import Home from '../views/Home.vue';
+import Factura from '../views/Factura.vue';
 import Items from '../views/Items.vue';
 import Cliente from '../views/Cliente.vue';
+import Login from '../views/login.vue';
 
 
 
 const routes = [
   { path: '/', component: Login },
-  { path: '/home', component: Home},
+  { path: '/factura', component: Factura},
   { path: '/items', component: Items},
   { path: '/cliente', component: Cliente}
 ];

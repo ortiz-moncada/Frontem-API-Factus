@@ -111,7 +111,7 @@ async function login() {
         timer: 1500
       });
 
-      router.replace("/home");
+      router.replace("/factura");
       limpiarInputs();
     }
   } catch (error) {

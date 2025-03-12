@@ -6,7 +6,9 @@
         <div class="Contenedor">
     
           <div class="Tabla">
-            <h2 class="tituloTabla">CLIENTES</h2>
+            <h2 class="tituloTabla">CLIENTES
+              <img class="imgC" src="https://cdn-icons-png.flaticon.com/128/6676/6676016.png" alt="">
+            </h2>
            
             <q-btn class="mas" label="+" @click="mas" />
             <div class="card">
@@ -14,7 +16,7 @@
           <q-card-section>
             <div class="contem-in-the-card">
               <div>
-                <label class="Name-the-header">Crear Cliente</label>
+                <label class="Name-the-header"><h3>Crear Cliente</h3></label>
                 <q-btn flat style="color: #3F4F44" label="X" class="btn" @click="cerrar" />
               </div>
 
@@ -22,21 +24,21 @@
                 <div class="contem1">
                   <label>NOMBRE</label>
                   <q-input v-model="nombre" standout="bg-teal text-white" label="Ingrese un Nombre" />
-
+                  <br><br>
                   <label>SELECCIONA TIPO DE DOCUMENTO</label>
                   <q-select v-model="tipoDocumento" :options="opcionesDocumento" standout="bg-teal text-white" label="Tipo de Documento" />
-
+                  <br><br>
                   <label>DOCUMENTO</label>
                   <q-input v-model="documento" standout="bg-teal text-white" label="Ingrese Número de documento" type="tel" maxlength="10" mask="##########" />
                 </div>
-
+                
                 <div class="contem2">
                   <label>CELULAR</label>
                   <q-input v-model="numeroCelular" standout="bg-teal text-white" label="Ingrese un número de celular" type="tel" maxlength="10" mask="##########" />
-
+                  <br><br>
                   <label>DV</label>
                   <q-input v-model="dv" standout="bg-teal text-white" label="Ingrese DV" />
-
+                  <br><br>
                   <label>DIRECCIÓN</label>
                   <q-input v-model="direccion" standout="bg-teal text-white" label="Ingrese una dirección" />
                 </div>
@@ -46,7 +48,7 @@
                   <q-input v-model="email" standout="bg-teal text-white" label="Ingrese un email" type="email" />
                 </div>
               </div>
-
+              <br><br><br><br>
               <q-btn :loading="loading" @click="registrar" label="REGISTRAR" class="full-width boton-personalizado">
                 <template v-slot:loading> Cargando... </template>
               </q-btn>
@@ -72,7 +74,7 @@
             <td class="text-right">{{ cliente.fecha }}</td>
             <td class="text-right">{{ cliente.total }}</td>
             <td class="text-right">
-              <q-btn icon="delete" color="red" flat @click="eliminarCliente(index)" />
+              <q-btn icon="visibility" color="blue" flat @click="eliminarCliente(index)" />
             </td>
           </tr>
         </tbody>
@@ -94,7 +96,7 @@
       </q-toolbar>
     </q-header>
     
-    <q-drawer show-if-above v-model="rightDrawerOpen" side="right" bordered>
+    <q-drawer v-model="rightDrawerOpen" side="right" bordered>
       <div class="caja1">
                 <img class="imagen" src="https://img.freepik.com/vector-gratis/gradiente-verde-ola-3d-lujo-fondo-oscuro-abstracto-moderno_343694-3033.jpg?semt=ais_hybrid" alt="">
     
@@ -112,6 +114,7 @@
             </div>
             <div class="caja4">
               <q-btn class="cerrar" @click="cerrarSesion()" color="red" glossy label="cerrar sesión " />
+
             </div>
     
     </q-drawer>
@@ -121,17 +124,19 @@
     </q-page-container>
     </q-layout>
     </div>
-    </template>
+</template>
     
 <style>
+.imgC{
+  height: 50px;
+  width: 50px;
+}
 .contem-the-imputs{
   display: grid;
   grid-template-columns: 33% 33% 33%;
   gap:10px ;
 }
 .Name-the-header{
-  font-size: xx-large;
-  margin: 3%;
   font-family: "Poppins";
   font-weight: 700;
   font-style: normal;
@@ -149,9 +154,12 @@
 }
 .mycard{
   width: 100%;
-  height: 90%;
+  height: 100%;
   position: fixed;  
-  background: #DCD7C9;
+  background-image: url(https://cdn.pixabay.com/photo/2024/06/14/11/07/shadows-8829575_640.jpg);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   margin-left: -1%;
   margin-top: -4%;
   padding: 20px;
@@ -237,18 +245,20 @@
     
 </style>
       
-    <script setup>
-    import { ref } from 'vue'
-    import { useAdminStore } from '../store/administrador';
-    import { useRouter } from 'vue-router';
-    import Swal from 'sweetalert2'
-   
-    
-const store= useAdminStore()
-const userName= store.userName
-const rightDrawerOpen = ref(false)
-const usuario = ref("Usuario"); 
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useAdminStore } from '../store/administrador';
+import { useRouter } from 'vue-router';
+import axios from 'axios';
+import Swal from 'sweetalert2';
+import { useQuasar } from 'quasar';
+
+const $q = useQuasar();
+const store = useAdminStore();
+const userName = store.userName;
+const rightDrawerOpen = ref(false);
 const router = useRouter();
+
 const tipoDocumento = ref(""); 
 const nombre = ref('');
 const documento = ref('');
@@ -265,64 +275,38 @@ const opcionesDocumento = ref([
 ]);
 const loading = ref(false);
 const clientes = ref([]);
-    
-    
-    
-    
-    function toggleRightDrawer () {
-      rightDrawerOpen.value = !rightDrawerOpen.value
-    }
-    
-    const cerrarSesion = () => {
-      Swal.fire({
-        title: "¿Seguro que quieres salir?",
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonText: "Sí",
-        cancelButtonText: "No",
-      }).then((result) => {
-        if (result.isConfirmed) {
-          localStorage.removeItem('token');
-          sessionStorage.clear();
-    
-          router.push('/');
-        }
-      });
-    };
-    
-    function facturas(){
-      router.replace("/home")
-    
-    }
-
-    function item(){
-  router.replace("/items")
-
-}
-
 const mostrarCarta = ref(false);
 
-function mas() {
-  mostrarCarta.value = true;
-  console.log("Abrir formulario");
+// Ajusta la URL de tu backend
+
+// **Función para obtener clientes desde la API**
+async function getClientes() {
+  try {
+    const response = await axios.get('http://localhost:3999/factus/customer/customer');
+
+    // Asegurar que los datos sean asignados correctamente
+    clientes.value = response.data.map(cliente => ({
+      id: cliente._id,  
+      nombre: cliente.company || cliente.trade_name || 'Sin Nombre', 
+      fecha: new Date().toLocaleDateString(), 
+      total: cliente.identification, 
+    }));
+
+    console.log("Clientes cargados:", clientes.value); // Verifica los datos en la consola
+  } catch (error) {
+    console.error("Error al obtener clientes:", error);
+    Swal.fire("Error", "No se pudieron cargar los clientes", "error");
+  }
 }
 
-function cerrar() {
-  mostrarCarta.value = false;
-   console.log("Cerrar formulario");
-}
-
-function registrar() {
+// **Función para registrar un nuevo cliente**
+async function registrar() {
   if (!nombre.value || !tipoDocumento.value || !documento.value || !numeroCelular.value || !direccion.value || !email.value) {
     Swal.fire("Error", "Todos los campos son obligatorios", "error");
     return;
   }
 
-  loading.value = true;
-
-  // Agregar cliente
-  clientes.value.push({
-    id: clientes.value.length + 1,
+  const nuevoCliente = {
     nombre: nombre.value,
     tipoDocumento: tipoDocumento.value,
     documento: documento.value,
@@ -330,25 +314,58 @@ function registrar() {
     dv: dv.value,
     direccion: direccion.value,
     email: email.value,
-    fecha: new Date().toLocaleDateString(),
+    fecha: new Date().toISOString().split('T')[0], // Fecha en formato YYYY-MM-DD
     total: Math.floor(Math.random() * 100) + 1
-  });
+  };
 
-  // Limpiar formulario
-  nombre.value = '';
-  tipoDocumento.value = '';
-  documento.value = '';
-  numeroCelular.value = '';
-  dv.value = '';
-  direccion.value = '';
-  email.value = '';
+  try {
+    loading.value = true;
+    const response = await axios.post(API_URL, nuevoCliente);
+    
+    clientes.value.push(response.data); // Agregar cliente al estado local
+    mostrarCarta.value = false; // Cerrar formulario
 
-  loading.value = false;
-  mostrarCarta.value = false;
+    // Limpiar formulario
+    nombre.value = '';
+    tipoDocumento.value = '';
+    documento.value = '';
+    numeroCelular.value = '';
+    dv.value = '';
+    direccion.value = '';
+    email.value = '';
 
-  Swal.fire("Éxito", "Cliente registrado correctamente", "success");
+    Swal.fire({
+      position: "center",
+      icon: "success",
+      title: "Cliente registrado con éxito",
+      showConfirmButton: false,
+      timer: 1500
+    });
+  } catch (error) {
+    console.error("Error al registrar cliente:", error);
+    Swal.fire("Error", "No se pudo registrar el cliente", "error");
+  } finally {
+    loading.value = false;
+  }
 }
- 
+
+// **Cargar clientes al iniciar**
+onMounted(() => {
+  getClientes();
+});
+
+function toggleRightDrawer() {
+  rightDrawerOpen.value = !rightDrawerOpen.value;
+}
+
+function mas() {
+  mostrarCarta.value = true;
+}
+
+function cerrar() {
+  mostrarCarta.value = false;
+}
 </script>
+
     
     

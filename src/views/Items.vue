@@ -6,54 +6,72 @@
         <div class="Contenedor">
     
           <div class="Tabla">
-            <h2 class="tituloTabla">ITEMS</h2>
-            <q-btn   class="mas" label="+" />
+            <h2 class="tituloTabla">ITEMS
+              <img class="imgI" src="https://cdn-icons-png.flaticon.com/128/6680/6680236.png" alt="">
+            </h2>
+            <q-btn class="mas" label="+" @click="mas" />
+            <div class="card">
+        <q-card class="mycard" v-if="mostrarCarta">
+          <q-card-section>
+            <div class="contem-in-the-card">
+              <div>
+                <label class="Name-the-header"><h3>Crear Item</h3></label>
+                <q-btn flat style="color: #3F4F44" label="X" class="btn" @click="cerrar" />
+              </div>
+
+              <div class="contem-the-imputs"> 
+                <div class="contem1">
+                  <label>NOMBRE</label>
+                  <q-input v-model="nombre" standout="bg-teal text-white" label="Ingrese  nombre del item" />
+                  <br><br>
+                  
+                  <label>PRECIO</label>
+                  <q-input v-model="precio" standout="bg-teal text-white" label="ingrese valor del producto" type="number" />
+                </div>
+                
+                <div class="contem2">
+                  <label>CODIGO DE REFERENCIA</label>
+                  <q-input v-model="codigoReferencia"  standout="bg-teal text-white" label="Ingrese codigo del producto" type="number"/>
+                  <br><br>
+                </div>
+
+                <div class="contem3">
+                  <label>IMPUESTO</label>
+                  <q-input v-model="impuesto" standout="bg-teal text-white" label="Ingrese inpuesto del producto" type="number" />
+                  <br><br>
+                </div>
+              </div>
+              <br><br><br><br>
+              <q-btn :loading="loading" @click="registrar" label="REGISTRAR" class="full-width boton-personalizado">
+                <template v-slot:loading> Cargando... </template>
+              </q-btn>
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
     
-            <q-markup-table dark class="bg-indigo-8">
-          <thead>
-            <tr>
-              <th class="text-left">CLIENTE </th>
-              <th class="text-right">ID</th>
-              <th class="text-right">FECHA</th>
-              <th class="text-right">TOTAL</th>
-              <th class="text-right">OPCIONES</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="text-left">KSPKOK</td>
-              <td class="text-right">159</td>
-              <td class="text-right">6</td>
-              <td class="text-right">24</td>
-              <td class="text-right">4</td>
-              
-            </tr>
-            <tr>
-              <td class="text-left">NUHNO</td>
-              <td class="text-right">237</td>
-              <td class="text-right">9</td>
-              <td class="text-right">37</td>
-              <td class="text-right">4.3</td>
-              
-            </tr>
-            <tr>
-              <td class="text-left">Eclair</td>
-              <td class="text-right">262</td>
-              <td class="text-right">16</td>
-              <td class="text-right">23</td>
-              <td class="text-right">6</td>
-              
-            </tr>
-            <tr>
-              <td class="text-left">Cupcake</td>
-              <td class="text-right">305</td>
-              <td class="text-right">3.7</td>
-              <td class="text-right">67</td>
-              <td class="text-right">4.3</td>
-              
-            </tr>
-          </tbody>
-        </q-markup-table>
+      <q-markup-table dark class="bg-indigo-8">
+        <thead>
+          <tr>
+            <th class="text-left">ITEMS</th>
+            <th class="text-right">PRECIO</th>
+            <th class="text-right">CODIGO DE REFERENCIA</th>
+            <th class="text-right">IMPUESTO</th>
+            <th class="text-right">OPCIONES</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(items, index) in items" :key="index">
+            <td class="text-left">{{ items.nombre }}</td>
+            <td class="text-right">{{ items.precio }}</td>
+            <td class="text-right">{{ items.codigoReferencia }}</td>
+            <td class="text-right">{{ items.impuesto }}</td>
+            <td class="text-right">
+              <q-btn icon="visibility" color="blue" flat @click="verItem(index)" />
+            </td>
+          </tr>
+        </tbody>
+      </q-markup-table>
       </div>
     
           <q-layout view="hHh lpR fFf">
@@ -71,7 +89,7 @@
       </q-toolbar>
     </q-header>
     
-    <q-drawer show-if-above v-model="rightDrawerOpen" side="right" bordered>
+    <q-drawer v-model="rightDrawerOpen" side="right" bordered>
       <div class="caja1">
                 <img class="imagen" src="https://img.freepik.com/vector-gratis/gradiente-verde-ola-3d-lujo-fondo-oscuro-abstracto-moderno_343694-3033.jpg?semt=ais_hybrid" alt="">
     
@@ -101,6 +119,10 @@
     </template>
     
 <style>
+.imgI{
+  height: 50px;
+  width: 50px;
+}
     .mas{
       margin-top: -12%;
       margin-left: 85%;
@@ -188,10 +210,17 @@
     const store= useAdminStore()
     const userName= store.userName
     const rightDrawerOpen = ref(false)
-    const usuario = ref("Usuario"); 
+
     const router = useRouter();
-    
-    
+    const nombre =  ref('');
+    const precio =   ref('');
+    const codigoReferencia = ref('');
+    const impuesto = ref('');
+    const items = ref([]);
+    const loading = ref(false);
+
+
+  
     
     
     function toggleRightDrawer () {
@@ -216,7 +245,7 @@
     };
     
     function facturas(){
-      router.replace("/home")
+      router.replace("/factura")
     
     }
 
@@ -226,7 +255,53 @@
     }
     
     
+const mostrarCarta = ref(false);
+
+function mas() {
+  mostrarCarta.value = true;
+  console.log("Abrir formulario");
+}
+
+function cerrar() {
+  mostrarCarta.value = false;
+   console.log("Cerrar formulario");
+}
+
+function registrar() {
+  if (!nombre.value || !precio.value || !codigoReferencia.value || !impuesto.value) {
+    Swal.fire("Error", "Todos los campos son obligatorios", "error");
+    return;
+  }
+
+  // Agregar cliente
+ items.value.push({
+  id: items.value.length + 1,
+      nombre: nombre.value,
+      precio: precio.value,
+      codigoReferencia: codigoReferencia.value,
+      impuesto: impuesto.value,
+      fecha: new Date().toLocaleDateString(),
+      total: Math.floor(Math.random() * 100) + 1
+ })
+
+  // Limpiar formulario
+  nombre.value = '';
+  precio.value = '';
+  codigoReferencia.value = '';
+  impuesto.value = '';
+
+  loading.value = false;
+  mostrarCarta.value=false;
+
+
+  Swal.fire({
+  position: "center",
+  icon: "success",
+  title: "Cliente registrado con exito",
+  showConfirmButton: false,
+  timer: 1500
+});
+}
+
     </script>
-    
-    
     
