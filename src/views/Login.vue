@@ -41,7 +41,8 @@ import { useQuasar } from 'quasar';
 import { ref } from 'vue';
 import Swal from 'sweetalert2';
 import { useAdminStore} from '../store/administrador.js';
-import { postDataurl } from '../services/apiclient.js';
+import axios from "../plugins/factus.js"
+
 import { router } from '../routes/routes.js';
 
 
@@ -88,16 +89,17 @@ async function login() {
   loading.value = true; 
  
   try {
-    const response = await postDataurl("/oauth/token", {
+    const response = await axios.post("/oauth/token", {
       grant_type: "password",
       client_id: import.meta.env.VITE_CLIENT_ID,
       client_secret: import.meta.env.VITE_CLIENT_SECRET,
       username: usuario.value,
       password: contraseña.value,
     });
+    console.log("Respuesta API:", response); 
 
-    if (response.access_token) {
-      Store.set_Token_RefreshToken(response.access_token, response.refresh_token);
+    if (response.data.access_token) {
+      Store.set_Token_RefreshToken(response.data.access_token, response.refresh_token);
       Store.setUserName(usuario.value)
 
 
@@ -111,7 +113,7 @@ async function login() {
         timer: 1500
       });
 
-      router.replace("/factura");
+      router.replace("/cliente");
       limpiarInputs();
     }
   } catch (error) {
