@@ -187,11 +187,14 @@
 </template>
 
 <script setup>
+import { useQuasar } from 'quasar'
 import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router';
 import apiCliente from '../plugins/axios';
 import axios from '../plugins/factus'
 import Swal from 'sweetalert2';
+
+const $q = useQuasar()
 
 const router = useRouter();
 const loading = ref(false);
@@ -210,6 +213,20 @@ const clienteData = ref({
   tribute_id: "21",
   municipality_id: null
 });
+
+
+function notifySucess(message) {
+  $q.notify({
+    message: message,
+    color: "green", // Color correcto
+  });
+}
+function notifyEroor(message) {
+  $q.notify({
+    message: message,
+    color: "red", // Color correcto
+  });
+}
 
 // Seleccionados
 const tipoDocumentoSeleccionado = ref(null);
@@ -354,7 +371,7 @@ async function getClientes() {
     clientes.value = response.data;
   } catch (error) {
     console.error("Error al cargar clientes:", error);
-    Swal.fire("Error", "No se pudieron cargar los clientes", "error");
+    notifyEroor('No se pudieron cargar los clientes')
   }
 }
 
@@ -369,7 +386,8 @@ async function registrar() {
   const camposFaltantes = camposRequeridos.filter(campo => !clienteData.value[campo]);
   
   if (camposFaltantes.length > 0) {
-    Swal.fire("Error", "Todos los campos son obligatorios", "error");
+    notifyEroor('Todos los campos son obligatorios')
+
     return;
   }
 
@@ -384,16 +402,10 @@ async function registrar() {
     mostrarCarta.value = false;
     resetForm();
     
-    Swal.fire({
-      position: "center",
-      icon: "success",
-      title: "Cliente registrado con éxito",
-      showConfirmButton: false,
-      timer: 1500
-    });
+    notifySucess('Registrado con exito')
   } catch (error) {
     console.error("Error al registrar cliente:", error);
-    Swal.fire("Error", "No se pudo registrar el cliente", "error");
+    this.notifyEroor('No se pudo Registrar')
   } finally {
     loading.value = false;
   }
@@ -422,14 +434,29 @@ function verCliente(cliente) {
   Swal.fire({
     title: "Detalles del Cliente",
     html: `
-      <div class="q-pa-md">
-        <p><strong>Nombre:</strong> ${cliente.names}</p>
-        <p><strong>Documento:</strong> ${cliente.identification}</p>
-        <p><strong>DV:</strong> ${cliente.dv}</p>
-        <p><strong>Teléfono:</strong> ${cliente.phone}</p>
-        <p><strong>Email:</strong> ${cliente.email}</p>
-        <p><strong>Dirección:</strong> ${cliente.address}</p>
+    <div class="contem">
+       <div class="q-pa-md">
+         <div class="caji"><p><strong>Nombre:</strong></p></div>
+        <div class="cajo"><p> ${cliente.names}</p></div>
+
+        <div class="caji"><p><strong>Documento:</strong></p></div>
+        <div class="cajo"><p> ${cliente.identification}</p></div>
+
+        <div class="caji"><p><strong>DV:</strong></p></div>
+        <div class="cajo"><p> ${cliente.dv}</p></div>
+
+        <div class="caji"><p><strong>Teléfono:</strong></p></div>
+        <div class="cajo"><p> ${cliente.phone}</p></div> 
+
+        <div class="caji"><p><strong>Email:</strong> </p></div>
+        <div class="cajo"><p> ${cliente.email}</p></div>
+
+        <div class="caji"><p><strong>Dirección:</strong> </p></div>
+        <div class="cajo"><p> ${cliente.address}</p></div>
+
       </div>
+      </div>
+     
     `,
     confirmButtonText: "Cerrar",
     confirmButtonColor: "#2C3930"
@@ -508,7 +535,7 @@ onMounted(async () => {
 });
 </script>
 
-<style>
+<style >
 .imgC {
   height: 50px;
   width: 50px;
@@ -517,6 +544,29 @@ onMounted(async () => {
   background-color: #1E2921;
   color: white;
 
+}
+.swal2-popup {
+  width: 70%;
+}
+.q-pa-md{
+  text-align: start;
+  display: grid;
+  grid-template-columns: 50% 50%;
+  border: 1px black solid;
+  border-radius: 15px;
+}
+
+.caji,.cajo{
+  border-radius: 15px 0% 0px 15px;
+  color: black;
+  background:#acacac;
+  border: 1px rgb(255, 255, 255) solid;
+  text-align: center;
+  margin-top: 2%;
+}
+.cajo{
+  background: #d7d7d7;
+  border-radius: 0% 15px 15px 0px ;
 }
 
 .tituloTabla {

@@ -225,7 +225,10 @@ import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
 import axios from 'axios';
 import apiClient from '../plugins/axios';
+import { useQuasar } from 'quasar'
 
+
+const $q = useQuasar()
 
 const store = useAdminStore();
 const router = useRouter();
@@ -256,6 +259,20 @@ const tributoSeleccionado = ref(null);
 // Opciones de selección
 const unitMeasureOptions = ref([]);
 const tributeOptions = ref([]);
+
+
+function notifySucess(message) {
+  $q.notify({
+    message: message,
+    color: "green", // Color correcto
+  });
+}
+function notifyEroor(message) {
+  $q.notify({
+    message: message,
+    color: "red", // Color correcto
+  });
+}
 
 // Opciones para código estándar
 const standardCodeOptions = ref([
@@ -374,7 +391,7 @@ async function getItems() {
     items.value = response.data;
   } catch (error) {
     console.error("Error al obtener items:", error);
-    Swal.fire("Error", "No se pudieron cargar los productos", "error");
+    notifyEroor('No se pudo cargar los productos')
   }
 }
 
@@ -401,7 +418,7 @@ async function registrar() {
     );
     
     if (impuestosInvalidos) {
-      Swal.fire("Error", "Complete todos los campos de impuestos", "error");
+      notifyEroor('Todos los datos son obligatorios')
       return;
     }
   }
@@ -417,19 +434,10 @@ async function registrar() {
     mostrarCarta.value = false;
     resetForm();
     
-    Swal.fire({
-      position: "center",
-      icon: "success",
-      title: "Producto registrado con éxito",
-      showConfirmButton: false,
-      timer: 1500
-    });
+    notifySucess('Producto registrado con exito')
   } catch (error) {
     console.error("Error al registrar producto:", error);
-    $q.notify({
-          type: 'negative',
-          message: 'This is a "negative" type notification.'
-        });
+    notifyEroor('No se pudo Registrar el producto')
   } finally {
     loading.value = false;
   }
@@ -475,22 +483,46 @@ function verItem(item) {
  Swal.fire({
    title: "Detalles del Producto",
    html: `
-     <div class="q-pa-md text-left">
-       <p><strong>Nombre:</strong> ${item.name}</p>
-       <p><strong>Código de referencia:</strong> ${item.code_reference}</p>
-       <p><strong>Precio:</strong> $${item.price.toLocaleString()}</p>
-       <p><strong>Cantidad:</strong> ${item.quantity}</p>
-       <p><strong>Unidad de medida:</strong> ${unidadMedida}</p>
-       <p><strong>Código estándar:</strong> ${codigoEstandar}</p>
-       <p><strong>Régimen tributario:</strong> ${tributo}</p>
-       <p><strong>Descuento:</strong> ${item.discount_rate}%</p>
-       <p><strong>Excluido:</strong> ${item.is_excluded ? 'Sí' : 'No'}</p>
-       ${impuestosHtml}
+     <div class="contem">
+       <div class="q-pa-md">
+         <div class="caji"><p><strong>Nombre:</strong></p></div>
+         <div class="cajo"><p>${item.name}</p></div>
+
+         <div class="caji"><p><strong>Código de referencia:</strong></p></div>
+         <div class="cajo"><p>${item.code_reference}</p></div>
+
+         <div class="caji"><p><strong>Precio:</strong></p></div>
+         <div class="cajo"><p>$${item.price.toLocaleString()}</p></div>
+
+         <div class="caji"><p><strong>Cantidad:</strong></p></div>
+         <div class="cajo"><p>${item.quantity}</p></div>
+
+         <div class="caji"><p><strong>Unidad de medida:</strong></p></div>
+         <div class="cajo"><p>${unidadMedida}</p></div>
+
+         <div class="caji"><p><strong>Código estándar:</strong></p></div>
+         <div class="cajo"><p>${codigoEstandar}</p></div>
+
+         <div class="caji"><p><strong>Régimen tributario:</strong></p></div>
+         <div class="cajo"><p>${tributo}</p></div>
+
+         <div class="caji"><p><strong>Descuento:</strong></p></div>
+         <div class="cajo"><p>${item.discount_rate}%</p></div>
+
+         <div class="caji"><p><strong>Excluido:</strong></p></div>
+         <div class="cajo"><p>${item.is_excluded ? 'Sí' : 'No'}</p></div>
+
+         <div class="caji"><p><strong>Inpuestos de Retencion:</strong></p></div>
+         <div class="cajo"><p>${impuestosHtml}</p></div>
+
+         
+       </div>
      </div>
    `,
    confirmButtonText: "Cerrar",
    confirmButtonColor: "#2C3930"
- });
+});
+
 }
 
 // Editar producto
@@ -535,7 +567,7 @@ onMounted(() => {
 });
 </script>
 
-<style >
+<style>
 .custom-modal {
   max-width: 800px; /* Reduce el ancho del modal */
   width: 90%;
@@ -549,6 +581,8 @@ onMounted(() => {
  height: 50px;
  width: 50px;
 }
+
+
 
 .tituloTabla {
  font-family: "Poppins", sans-serif;

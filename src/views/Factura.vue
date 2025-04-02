@@ -29,7 +29,7 @@
                 <div class="form-group">
                   <label class="form-label">Cliente</label>
                   <q-select v-model="facturaData.customer" :options="clientes" option-label="names" option-value="id"
-                    label="Seleccione un cliente" :rules="[val => !!val || 'Cliente requerido']" />
+                    label="Seleccione un cliente" :rules="[val => !!val || 'Cliente requerido']"  />
                 </div>
 
                 <div class="form-group">
@@ -99,7 +99,7 @@
         <template v-slot:body-cell-opciones="props">
           <q-td :props="props">
             <q-btn icon="visibility" color="blue-4" flat @click="verFactura(props.row)" />
-            <q-btn icon="download" color="blue-7" flat @click="descargarFactura(props.row)" />
+            <q-btn icon="download" color="blue-7" flat @click="descargarFactura(props.row.data.bill.number)" />
           </q-td>
         </template>
       </q-table>
@@ -111,8 +111,14 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import apiClient from '../plugins/axios';
-import axios from '../plugins/factus'
+import { getDataFactus, postDataFactus } from '../services/factus.js';
+import { postDataurl, getDataurl } from '../services/apiclient.js';
 import Swal from 'sweetalert2';
+import { useQuasar } from 'quasar';
+import { useAdminStore } from '../store/administrador.js';
+
+
+const adminStore = useAdminStore();
 
 // Variables reactivas con ref
 const Item = ref({
@@ -120,6 +126,24 @@ const Item = ref({
   name: '',
   price: 0
 });
+
+const $q = useQuasar();
+const showTokenExpiredDialog = ref(false);
+
+function notifySucess(message) {
+  $q.notify({
+    message: message,
+    color: "green", // Color correcto
+  });
+}
+
+function notifyEroor(message) {
+  $q.notify({
+    message: message,
+    color: "red", // Color correcto
+  });
+}
+
 
 const Factura = ref({
   id: 0,
@@ -139,6 +163,7 @@ const Factura = ref({
   }
 });
 
+const invoice = ref(null)
 const router = useRouter();
 const loading = ref(false);
 const facturas = ref([]);
@@ -183,25 +208,25 @@ const columns = [
     name: 'api_client_name',
     label: 'CLIENTE',
     align: 'center',
-    field: 'api_client_name'
+    field: ((elemento)=> elemento.data.customer.names)
   },
   {
     name: 'reference_code',
     label: 'CODIGO DE REFERENCIA',
     align: 'center',
-    field: 'reference_code'
+    field: ((elemento)=> elemento.data.bill.reference_code)
   },
   {
     name: 'number',
     label: 'NÚMERO',
     align: 'center',
-    field: 'number'
+    field: ((elemento)=> elemento.data.bill.number)
   },
   {
     name: 'total',
     label: 'PRECIO TOTAL',
     align: 'center',
-    field: 'total'
+    field: ((elemento)=> elemento.data.bill.total)
   },
   {
     name: 'opciones',
@@ -217,7 +242,7 @@ async function getClientes() {
     clientes.value = response.data || [];
   } catch (error) {
     console.error("Error al cargar clientes:", error);
-    Swal.fire("Error", "No se pudieron cargar los clientes", "error");
+    notifyEroor('No se encontraron clientes')
   }
 }
 
@@ -227,8 +252,15 @@ async function getItems() {
     items.value = response.data || [];
   } catch (error) {
     console.error("Error al cargar items:", error);
-    Swal.fire("Error", "No se pudieron cargar los artículos", "error");
+    notifyEroor('No se encontraron productos')
   }
+}
+
+function formatearFecha(fecha){
+  const fechaStr = fecha; 
+    const [day, month, year] = fechaStr.split("-");
+    const fechaValida = `${year}-${month}-${day}`; 
+    return fechaValida
 }
 
 
@@ -237,23 +269,20 @@ async function validarYRegistrar() {
     if (!validateForm()) {
       return;
     }
-
     loading.value = true;
 
-    console.log('Nombre del cliente:', facturaData.value.customer.name);
-    console.log('Tipo de nombre:', typeof facturaData.value.customer.name);
     const customerData = {
-  identification: String(facturaData.value.customer.identification || ''),
-  dv: '3',
-  names: facturaData.value.customer.names || '', 
-  phone: String(facturaData.value.customer.phone || ''),
-  email: facturaData.value.customer.email || '',
-  address: facturaData.value.customer.address || '',
-  legal_organization_id: '2',
-  tribute_id: '21',
-  identification_document_id: '3',
-  municipality_id: '980'
-};
+      identification: String(facturaData.value.customer.identification || ''),
+      dv: '3',
+      names: facturaData.value.customer.names || '',
+      phone: String(facturaData.value.customer.phone || ''),
+      email: facturaData.value.customer.email || '',
+      address: facturaData.value.customer.address || '',
+      legal_organization_id: '2',
+      tribute_id: '21',
+      identification_document_id: '3',
+      municipality_id: '980'
+    };
     // Prepare items data
     const itemsData = (Array.isArray(facturaData.value.items)
       ? facturaData.value.items
@@ -273,47 +302,30 @@ async function validarYRegistrar() {
         withholding_taxes: [] // Optional: add withholding taxes if needed
       }));
 
-    // Prepare full payload
-    const payload = {
 
+
+    const validationResponse = await postDataFactus('/v1/bills/validate', {
       reference_code: facturaData.value.reference_code,
       observation: facturaData.value.observation || '',
       payment_form: facturaData.value.payment_form.value || facturaData.value.payment_form,
       payment_method_code: facturaData.value.payment_method_code.value || facturaData.value.payment_method_code,
       payment_due_date: facturaData.value.payment_due_date,
       billing_period: {
-        start_date: facturaData.value.billing_period.start_date,
+        start_date: formatearFecha(facturaData.value.billing_period.start_date),
         start_time: "00:00:00",
-        end_date: facturaData.value.billing_period.end_date,
+        end_date: formatearFecha(facturaData.value.billing_period.end_date),
         end_time: "23:59:59"
       },
       customer: customerData,
       items: itemsData
-    };
+    });
+    console.log("exito", validationResponse)
+    validationResponse.data.billing_period.end_date = formatearFecha(facturaData.value.billing_period.end_date)
+    validationResponse.data.billing_period.end_date = formatearFecha(facturaData.value.billing_period.start_date)
+    registrarFactura(validationResponse.data)
 
-    console.log("Payload for validation:", JSON.stringify(payload, null, 2));
-
-    const validationResponse = await axios.post('/v1/bills/validate', payload);
-
-    if (validationResponse.data.valid) {
-      await registrarFactura(payload);
-    } else {
-      Swal.fire("Error de Validación", validationResponse.data.message || "La factura no pasó la validación", "error");
-    }
   } catch (error) {
     console.error("Error completo al validar o registrar factura:", error);
-
-    const errorMessage = error.response?.data?.message ||
-      (error.response?.data?.errors
-        ? Object.values(error.response.data.errors).flat().join('\n')
-        : 'Error desconocido');
-
-    Swal.fire({
-      icon: 'error',
-      title: 'Error de Validación',
-      text: errorMessage,
-      width: '800px'
-    });
   } finally {
     loading.value = false;
   }
@@ -332,17 +344,17 @@ function validateForm() {
   } = facturaData.value;
 
   if (!reference_code) {
-    Swal.fire("Error", "Código de referencia es requerido", "error");
+    notifyEroor('Codigo de referencia es requerido ')
     return false;
   }
 
   if (!customer) {
-    Swal.fire("Error", "Debe seleccionar un cliente", "error");
+    notifyEroor('debe seleccionar un cliente')
     return false;
   }
 
   if (!items || items.length === 0) {
-    Swal.fire("Error", "Debe seleccionar al menos un artículo", "error");
+    notifyEroor('debe seleccionar un articulo')
     return false;
   }
 
@@ -350,87 +362,65 @@ function validateForm() {
   const paymentMethodValue = payment_method_code.value || payment_method_code;
 
   if (!paymentFormValue) {
-    Swal.fire("Error", "Forma de pago es requerida", "error");
+    notifyEroor('Forma de pago es requerida')
     return false;
   }
 
   if (!paymentMethodValue) {
-    Swal.fire("Error", "Método de pago es requerido", "error");
+    notifyEroor('Metodo de pago es requerido')
     return false;
   }
 
   if (!payment_due_date) {
-    Swal.fire("Error", "Fecha de vencimiento es requerida", "error");
+    notifyEroor('Fecha de vencimiento es requerida')
     return false;
   }
 
   if (!billing_period.start_date || !billing_period.end_date) {
-    Swal.fire("Error", "Período de facturación es requerido", "error");
+    notifyEroor('Periodo de facturacion es requerido ')
     return false;
   }
 
   return true;
 }
 
-async function registrarFactura(payload) {
+
+
+async function registrarFactura(data) {
   try {
-    await axios.post('/v1/bills', payload);
+    await postDataurl('/facturas', {data});
     await getFacturas();
     mostrarCarta.value = false;
     resetForm();
-    Swal.fire("Éxito", "Factura registrada correctamente", "success");
+    notifySucess('La factura se ha registrado correctamente')
   } catch (error) {
     console.error("Error al registrar factura:", error);
-    Swal.fire("Error", "No se pudo registrar la factura", "error");
+    notifyEroor('No se pudo registrar la factura')
   }
 }
 
 async function getFacturas() {
   try {
-    const response = await axios.get('/v1/bills', {
-      params: {
-        'filter[identification]': '',
-        'filter[names]': '',
-        'filter[number]': '',
-        'filter[prefix]': '',
-        'filter[reference_code]': '',
-        'filter[status]': ''
-      }
-    });
-
+    const response = await getDataurl('/facturas/FAT')
     console.log("Full server response:", response);
 
-    const billsData = response.data?.data?.data || [];
+    const billsData = response || [];
+    console.log("get facturas",response)
 
     if (Array.isArray(billsData)) {
       facturas.value = billsData;
       console.log("Facturas cargadas:", facturas.value);
 
       if (facturas.value.length === 0) {
-        Swal.fire("Aviso", "No se encontraron facturas", "info");
+        notifyEroor('No se encontraron facturas');
       }
     } else {
       console.error("Received data is not an array:", billsData);
-      Swal.fire("Error", "Formato de datos inválido", "error");
+      notifyEroor('Formato de Datos invalido');
       facturas.value = [];
     }
   } catch (error) {
     console.error("Error completo al cargar facturas:", error);
-
-    if (axios.isAxiosError(error)) {
-      const errorMessage = error.response?.data?.message || error.message;
-      Swal.fire({
-        icon: 'error',
-        title: 'Error al cargar facturas',
-        text: errorMessage || 'Error desconocido'
-      });
-    } else {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error al cargar facturas',
-        text: 'Error inesperado'
-      });
-    }
 
     facturas.value = [];
   }
@@ -452,148 +442,189 @@ function resetForm() {
   };
 }
 
-function verFactura(factura) {
-  Swal.fire({
-    
-    html: `
-    <div class="Encabezado">
-      <h3>Gestión de Facturación Digital</h3><br><br>
-      <img class="img" src="https://cdn-icons-png.flaticon.com/128/3884/3884880.png">
-      </div><br><br>
-      <div class="Cj1">
-        <div><p><strong>Código de Referencia:</strong> ${factura.reference_code}</p></div>
-      <div><p><strong>Número de Factura:</strong> ${factura.number || 'N/A'}</p></div>
-      </div>
-       <div class="Cj2">
-      <p><strong>Cliente:</strong> ${factura.names || 'N/A'}</p>
-      <p><strong>Forma de Pago:</strong> ${factura.payment_form|| 'N/A'}</p>
-      </div>
-      <div class="Cj3">
-       <p><strong>Método de Pago:</strong> ${factura.payment_method_code}</p>
-       <p><strong>Fecha de Vencimiento:</strong> ${factura.payment_due_date}</p>
-      </div>
-     
-      <div class="uni">
-        <p><strong>Período de Facturación:</strong> 
-        ${factura.start_date || 'N/A'} - 
-        ${factura.end_date || 'N/A'}
-        </p>
-      </div>
-      
-      
-      
-      ${factura.observation
-        ? `<p><strong>Observaciones:</strong> ${factura.observation}</p>`
-        : ''}
-    `,
-    confirmButtonText: "Cerrar",
-    confirmButtonColor: "#2C3930"
-  });
-}
 
-
-
-async function descargarFactura(factura) {
+async function descargarFactura(number) {
+  console.log("Iniciando descarga de factura:", number);
+  
   try {
-    // Validate that a factura is passed
-    if (!factura || !factura.number) {
-      Swal.fire("Error", "No se ha seleccionado una factura válida", "error");
-      return;
-    }
-
-    // Show loading indicator
-    loading.value = true;
-
-    // Log the full factura object for debugging
-    console.log("Factura para descargar:", factura);
-
-    // Detailed logging of the request
-    console.log("Intentando descargar factura con número:", factura.number);
-
-    // Try to get the PDF using the backend route
-    const downloadResponse = await apiClient.get(`/factus/bills/${factura.number}/download-pdf`, {
-      params: {
-        bill_number: factura.number
-      },
-      responseType: 'blob'
-    });
-
-    // Log the response details
-    console.log("Respuesta de descarga:", {
-      status: downloadResponse.status,
-      headers: downloadResponse.headers,
-      data: downloadResponse.data
-    });
-
-    // Verify the response is a PDF
-    if (downloadResponse.data.type !== 'application/pdf') {
-      throw new Error('La respuesta no es un archivo PDF válido');
-    }
-
-    // Create a blob from the response data
-    const blob = new Blob([downloadResponse.data], { type: 'application/pdf' });
-
-    // Create a link element to trigger the download
-    const link = document.createElement('a');
-    link.href = window.URL.createObjectURL(blob);
+    // 1. Obtener datos de la API
+    const invoiceResponse = await getDataFactus(`/v1/bills/download-pdf/${number}`);
     
-    // Generate filename based on invoice details
-    const filename = `Factura_${factura.reference_code || factura.number}.pdf`;
-    link.download = filename;
-
-    // Append to body, click, and remove
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    Swal.fire("Éxito", "Factura descargada correctamente", "success");
+    // 2. Validar respuesta
+    if (!invoiceResponse?.data?.pdf_base_64_encoded) {
+      throw new Error("La respuesta no contiene datos válidos del PDF");
+    }
+    
+    const { file_name = `factura_${number}`, pdf_base_64_encoded } = invoiceResponse.data;
+    
+    // 3. Decodificar base64 (manejo más eficiente)
+    const byteCharacters = atob(pdf_base_64_encoded);
+    const byteNumbers = new Array(byteCharacters.length);
+    
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    
+    const byteArray = new Uint8Array(byteNumbers);
+    
+    // 4. Crear Blob y descargar
+    const blob = new Blob([byteArray], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = `${number}.pdf`;
+    
+    document.body.appendChild(a);
+    a.click();
+    
+    // 5. Limpieza
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+    
+    // 6. Notificar al usuario
+    Notify.create({
+      message: "Factura descargada correctamente",
+      color: 'positive',
+      icon: 'cloud_download'
+    });
+    
+    console.log(`Factura ${file_name} descargada correctamente`);
+    
   } catch (error) {
-    // Comprehensive error logging
-    console.error("Error detallado al descargar factura:", {
-      message: error.message,
-      response: error.response,
-      request: error.request,
-      config: error.config
-    });
-
-    // More detailed error handling
-    let errorMessage = 'No se pudo descargar la factura.';
-    
-    if (error.response) {
-      // Detailed logging for server response errors
-      console.error("Detalles de la respuesta del servidor:", {
-        status: error.response.status,
-        data: error.response.data,
-        headers: error.response.headers
-      });
-
-      errorMessage = error.response.data.message || 
-        `Error ${error.response.status}: ${error.response.statusText}`;
-    } else if (error.request) {
-      // Logging for request errors
-      console.error("Detalles de la solicitud:", error.request);
-      errorMessage = 'No se recibió respuesta del servidor. Verifique su conexión.';
-    } else {
-      // Logging for other types of errors
-      console.error("Error de configuración:", error.message);
-      errorMessage = error.message;
-    }
-    
-    Swal.fire({
-      icon: 'error',
-      title: 'Error de Descarga',
-      text: errorMessage,
-      footer: 'Intente nuevamente o contacte soporte técnico'
-    });
-  } finally {
-    loading.value = false;
+    console.error("Error en downloadInvoice:", error);
+  
+  // Mostrar mensaje más específico al usuario
+  let errorMessage = "Error al descargar la factura";
+  if (error.response && error.response.status === 404) {
+    errorMessage = "La factura solicitada no se encuentra disponible";
+  }
+  
+  Notify.create({
+    message: errorMessage,
+    color: 'negative',
+    icon: 'error'
+  });
   }
 }
 
+function verFactura(factura) {
+   Swal.fire({
+      html: `
+      <div class="divicion">
+         <div class="Encabezado">
+       <br><br><h3>Gestión de Facturación Digital</h3><br><br>
+       <img class="img" src="https://cdn-icons-png.flaticon.com/128/3884/3884880.png">
+     </div>
+     <div class="qr"></p><img class="qr1" src="${factura.data.bill.qr_image}" alt="Código QR"></div>
+        </div><br><br>
+    
+         <div class="uni">
+       <p><strong>Período de Facturación:</strong>
+        ${factura.data.billing_period?.start_date || 'N/A'} - 
+        ${factura.data.billing_period?.end_date || 'N/A'}
+       </p>
+     </div>
+     
+     <!-- Información de Factura -->
+     <div class="Cj1">
+       <div><p><strong>Código de Referencia:</strong> ${factura.data.bill.reference_code}</p></div>
+       <div><p><strong>Número de Factura:</strong> ${factura.data.bill.number || 'N/A'}</p></div>
+     </div>
+     
+     <!-- Información del Cliente -->
+     <div class="cliente-info">
+       <h4>Información del Cliente</h4>
+       <div class="Cj2">
+         <p><strong>Cliente:</strong> ${factura.data.customer.names || 'N/A'}</p>
+         <p><strong>Identificación:</strong> ${factura.data.customer.identification || 'N/A'}</p>
+       </div>
+       <div class="Cj3">
+         <p><strong>Email:</strong> ${factura.data.customer.email || 'N/A'}</p>
+         <p><strong>Teléfono:</strong> ${factura.data.customer.phone || 'N/A'}</p>
+       </div>
+     </div>
+     
+     <!-- Información de Pago -->
+     <div class="pago-info">
+       <h4>Información de Pago</h4>
+       <div class="Cj2">
+         <p><strong>Forma de Pago:</strong> ${factura.data.bill.payment_form.name || 'N/A'}</p>
+         <p><strong>Método de Pago:</strong> ${factura.data.bill.payment_method.name || 'N/A'}</p>
+       </div>
+       <div class="Cj3">
+         <p><strong>Fecha de Vencimiento:</strong> ${factura.data.bill.payment_due_date || 'N/A'}</p>
+         <p><strong>Fecha de Creación:</strong> ${factura.data.bill.created_at || 'N/A'}</p>
+       </div>
+     </div>
+     
+     <!-- Información del Producto -->
+     <div class="producto-info">
+       <h4>Detalle de Productos</h4>
+       <table class="tabla-productos">
+         <thead>
+           <tr>
+             <th>Descripción</th>
+             <th>Cantidad</th>
+             <th>Precio Unit.</th>
+             <th>Total</th>
+           </tr>
+         </thead>
+         <tbody>
+           ${factura.data.items ? 
+             factura.data.items.map(item => `
+               <tr>
+                 <td>${item.description || 'N/A'}</td>
+                 <td>${item.quantity || 'N/A'}</td>
+                 <td>${item.price || 'N/A'}</td>
+                 <td>${item.total || 'N/A'}</td>
+               </tr>
+             `).join('') : 
+             `<tr><td colspan="4">No hay productos disponibles</td></tr>`
+           }
+         </tbody>
+       </table>
+     </div>
+     
+     <!-- Resumen de Factura -->
+     <div class="resumen">
+       <h4>Resumen</h4>
+       <div>
+         <p><strong>Subtotal:</strong> ${factura.data.bill.gross_value || 'N/A'}</p>
+         <p><strong>Descuento:</strong> ${factura.data.bill.discount || 'N/A'}</p>
+         <p><strong>Impuestos:</strong> ${factura.data.bill.tax_amount || 'N/A'}</p>
+         <p><strong>Total a Pagar:</strong> ${factura.data.bill.total || 'N/A'}</p>
+       </div>
+     </div>
+     
 
-
-
-
+     ${factura.data.bill.observation
+       ? `<p><strong>Observaciones:</strong> ${factura.data.bill.observation}</p>`
+       : ''}
+    
+     
+     <div class="legal-info">
+       <p><strong>CUFE:</strong> ${factura.data.bill.cufe || 'N/A'}</p>
+      
+       <p><strong>URL Pública:</strong> ${factura.data.bill.public_url || 'N/A'}</p>
+     </div>
+     
+     
+     `,
+     confirmButtonText: "Cerrar",
+     confirmButtonColor: "#2C3930",
+     width: '80%',  
+     customClass: {
+       container: 'factura-container',
+       popup: 'factura-popup'
+     }
+   });
+   
+   console.log(factura);
+}
 function mas() {
   resetForm();
   mostrarCarta.value = true;
@@ -612,20 +643,179 @@ onMounted(() => {
 </script>
 
 <style>
-.Cj1,.Cj2,.Cj3,.uni{
+/* Estilos generales para la factura electrónica */
+.factura-popup {
+  font-family: 'Arial', sans-serif;
+  color: #333;
+  background-color: #fff;
+  padding: 0;
+  border-radius: 8px;
+}
+
+.factura-container {
+  padding: 0;
+}
+
+
+
+.divicion{
   display: grid;
-  grid-template-columns: 50% 50%;
-  border: 1px black solid;
-  margin: 4px;
+  grid-template-columns: 70% 30%;
+}
+.qr{
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #2C3930;
+  padding: 15px;
+  text-align: center;
+  border-radius: 8px 8px 0 0;
+}
+.qr1{
+  padding: 15px;
+}
+
+/* Encabezado */
+.Encabezado {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #2C3930;
+  padding: 15px;
+  text-align: center;
+  border-radius: 8px 8px 0 0;
+}
+
+.Encabezado h3 {
+  color: #2C3930;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.Encabezado .img {
+  width: 60px;
+  height: auto;
+  margin-top: 10px;
+}
+
+/* Secciones de información */
+.Cj1, .Cj2, .Cj3, .cliente-info, .pago-info, .producto-info, .resumen, .uni, .legal-info {
+  padding: 10px 20px;
+  margin-bottom: 15px;
+  background-color: #f9f9f9;
   border-radius: 5px;
 }
 
-h3{
-  color: black;
+.cliente-info, .pago-info, .producto-info, .resumen {
+  border-left: 4px solid #2C3930;
+  background-color: #f8f9fa;
 }
 
-.swal2-popup{
-  width: 90%;
+h4 {
+  color: #2C3930;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 8px;
+  margin-top: 5px;
+  margin-bottom: 15px;
+  font-size: 16px;
 }
 
+/* Organización en columnas */
+.Cj1, .Cj2, .Cj3 {
+  display: flex;
+  justify-content: space-between;
+}
+
+.Cj1 div, .Cj2 p, .Cj3 p {
+  margin: 5px 0;
+  font-size: 14px;
+}
+
+/* Tabla de productos */
+.tabla-productos {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.tabla-productos th {
+  background-color: #2C3930;
+  color: white;
+  text-align: left;
+  padding: 8px;
+  font-weight: normal;
+}
+
+.tabla-productos td {
+  border-bottom: 1px solid #ddd;
+  padding: 8px;
+}
+
+.tabla-productos tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.tabla-productos tr:hover {
+  background-color: #e9e9e9;
+}
+
+/* Resumen financiero */
+.resumen div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.resumen p {
+  margin: 5px 0;
+  font-size: 14px;
+}
+
+.resumen p:last-child {
+  font-size: 16px;
+  font-weight: bold;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #ddd;
+}
+
+/* Información legal */
+.legal-info {
+  font-size: 12px;
+  color: #666;
+  background-color: #f5f5f5;
+  border-radius: 5px;
+  margin-top: 15px;
+  word-break: break-all;
+}
+
+.legal-info p {
+  margin: 5px 0;
+}
+
+/* Observaciones */
+p strong {
+  color: #2C3930;
+}
+
+/* Responsive */
+@media print {
+  .factura-popup {
+    width: 100% !important;
+    box-shadow: none !important;
+  }
+  
+  .swal2-actions {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .Cj1, .Cj2, .Cj3 {
+    flex-direction: column;
+  }
+  
+  .factura-popup {
+    width: 95% !important;
+    margin: auto;
+  }
+}
 </style>

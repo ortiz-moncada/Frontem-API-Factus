@@ -1,8 +1,4 @@
 <template>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
-
   <div class="CONTENEDOR" id="Container">
     <div v-for="i in 100" :key="i" class="cajas"></div>
 
@@ -19,74 +15,62 @@
       </div>
 
       <q-btn 
-  :loading="loading" 
-  @click="vamos"
-  label="INGRESAR"
-  class="full-width boton-personalizado"
-  
->
+        :loading="loading" 
+        @click="vamos"
+        label="INGRESAR"
+        class="full-width boton-personalizado"
+      >
         <template v-slot:loading>
-
           Cargando...
-
         </template>
       </q-btn><br><br>
-      
     </div>
   </div>
 </template>
 
 <script setup>
-import { useQuasar } from 'quasar';
-import { ref } from 'vue';
-import Swal from 'sweetalert2';
-import { useAdminStore} from '../store/administrador.js';
+import { useQuasar } from 'quasar'
+import { ref } from 'vue'
+import { useAdminStore } from '../store/administrador.js'
 import axios from "../plugins/factus.js"
+import { router } from '../routes/routes.js'
 
-import { router } from '../routes/routes.js';
+// Correctly initialize Quasar
+const $q = useQuasar()
 
-
-
-
-const $q = useQuasar();
-const usuario = ref('');
-const contraseña = ref('');
-const Store = useAdminStore();
-const loading = ref(false); // Estado de carga del botón
-
-
-
+const usuario = ref('')
+const contraseña = ref('')
+const Store = useAdminStore()
+const loading = ref(false)
 
 function limpiarInputs() {
-  usuario.value = '';
-  contraseña.value = '';
+  usuario.value = ''
+  contraseña.value = ''
 }
 
-
-
 function vamos() {
-
   if (usuario.value.trim() === '') {
-    Swal.fire({
-      text: "Por favor ingrese un usuario",
-      allowOutsideClick: false,
-      position: "top-end"
-    });
-    return;
+    // Use Quasar's Notify directly
+    $q.notify({
+      type: 'warning',
+      message: 'Por favor ingrese un usuario',
+      position: 'top-end'
+    })
+    return
   } 
   if (contraseña.value.trim() === '') {
-    Swal.fire({
-      text: "Por favor ingrese una contraseña",
-      allowOutsideClick: false,
-      position: "top-end"
-    });
-    return;
+    $q.notify({
+      type: 'warning',
+      message: 'Por favor ingrese una contraseña',
+      position: 'top-end'
+    })
+    return
   }
-  login();
+  login()
 }
 
 async function login() {
-  loading.value = true; 
+  loading.value = true 
  
   try {
     const response = await axios.post("/oauth/token", {
@@ -95,42 +79,36 @@ async function login() {
       client_secret: import.meta.env.VITE_CLIENT_SECRET,
       username: usuario.value,
       password: contraseña.value,
-    });
-    console.log("Respuesta API:", response); 
+    })
+    console.log("Respuesta API:", response) 
 
     if (response.data.access_token) {
-      Store.set_Token_RefreshToken(response.data.access_token, response.refresh_token);
+      Store.set_Token_RefreshToken(response.data.access_token, response.data.refresh_token)
       Store.setUserName(usuario.value)
 
+      // Ensure notify is called correctly
+      $q.notify({
+        type: 'positive',
+        message: 'Has ingresado correctamente',
+        position: 'top'
+      })
 
-    
+      // Small delay to ensure notification is visible
+      await new Promise(resolve => setTimeout(resolve, 1500))
 
-      await Swal.fire({
-        position: "top-end",
-        icon: "success",
-        title: "Has ingresado correctamente",
-        showConfirmButton: false,
-        timer: 1500
-      });
-
-      router.replace("/cliente");
-      limpiarInputs();
+      router.replace("/cliente")
+      limpiarInputs()
     }
   } catch (error) {
-    Swal.fire({
-      title: "Error",
-      text: "Credenciales incorrectas o problema con el servidor",
-      icon: "error",
-      allowOutsideClick: false,
-      position: "top-end"
-    });
+    $q.notify({
+      type: 'negative',
+      message: 'Credenciales incorrectas o problema con el servidor',
+      position: 'center'
+    })
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
-
-
-
 </script>
 
 <style>
@@ -170,18 +148,8 @@ input {
   object-fit: contain; 
 }
 
-.swal2-confirm{
-  background-color: rgb(181, 10, 10);
-  border: 1px white solid;
-  margin-top: -30%;
-  font-size:medium;
-  padding: 0% 40%;
-}
-.swal2-title{
-  margin: none;
-  padding: 0;
-  font-size:medium;
-}
+
+
 .Titulo {
   text-align: center;
   font-family: "Anton", serif;
