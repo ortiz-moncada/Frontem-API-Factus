@@ -38,11 +38,12 @@
                     v-model="tipoDocumentoSeleccionado" 
                     :options="tiposDocumento" 
                     class="custom-input popup-select"
+                    popup-content-class="select-popup-content"
+                    behavior="menu"
                     outlined
                     option-label="name"
                     option-value="id"
                     label="Seleccione tipo de documento" 
-                    
                     :rules="[val => !!val || 'Campo requerido']"
                     @update:model-value="updateDocumentType"
                   />
@@ -122,9 +123,10 @@
                     :options="municipios" 
                     outlined
                     class="custom-input popup-select"
+                    popup-content-class="select-popup-content"
+                    behavior="menu"
                     option-label="name"
                     option-value="id"
-                    
                     label="Seleccione municipio"
                     :rules="[val => !!val || 'Campo requerido']"
                     @update:model-value="updateMunicipality"
@@ -143,6 +145,8 @@
                     option-label="name"
                     option-value="id"
                     class="custom-input popup-select"
+                    popup-content-class="select-popup-content"
+                    behavior="menu"
                     label="Seleccione régimen tributario"
                     :rules="[val => !!val || 'Campo requerido']"
                     @update:model-value="updateTribute"
@@ -195,6 +199,7 @@ import axios from '../plugins/factus'
 import Swal from 'sweetalert2';
 
 const $q = useQuasar()
+
 
 const router = useRouter();
 const loading = ref(false);
@@ -431,38 +436,37 @@ function resetForm() {
 
 // Ver detalles del cliente
 function verCliente(cliente) {
-  Swal.fire({
-    title: "Detalles del Cliente",
-    html: `
-    <div class="contem">
-       <div class="q-pa-md">
-         <div class="caji"><p><strong>Nombre:</strong></p></div>
-        <div class="cajo"><p> ${cliente.names}</p></div>
-
-        <div class="caji"><p><strong>Documento:</strong></p></div>
-        <div class="cajo"><p> ${cliente.identification}</p></div>
-
-        <div class="caji"><p><strong>DV:</strong></p></div>
-        <div class="cajo"><p> ${cliente.dv}</p></div>
-
-        <div class="caji"><p><strong>Teléfono:</strong></p></div>
-        <div class="cajo"><p> ${cliente.phone}</p></div> 
-
-        <div class="caji"><p><strong>Email:</strong> </p></div>
-        <div class="cajo"><p> ${cliente.email}</p></div>
-
-        <div class="caji"><p><strong>Dirección:</strong> </p></div>
-        <div class="cajo"><p> ${cliente.address}</p></div>
-
-      </div>
-      </div>
-     
-    `,
-    confirmButtonText: "Cerrar",
-    confirmButtonColor: "#2C3930"
-  });
-}
-
+   Swal.fire({
+     title: "Detalles del Cliente",
+     html: `
+          <div class="contem">
+        <div class="q-pa-md">
+          <div class="caji"><p><strong>Nombre:</strong></p></div>
+         <div class="cajo"><p> ${cliente.names}</p></div>
+ 
+         <div class="caji"><p><strong>Documento:</strong></p></div>
+         <div class="cajo"><p> ${cliente.identification}</p></div>
+ 
+         <div class="caji"><p><strong>DV:</strong></p></div>
+         <div class="cajo"><p> ${cliente.dv}</p></div>
+ 
+         <div class="caji"><p><strong>Teléfono:</strong></p></div>
+         <div class="cajo"><p> ${cliente.phone}</p></div> 
+ 
+         <div class="caji"><p><strong>Email:</strong> </p></div>
+         <div class="cajo"><p> ${cliente.email}</p></div>
+ 
+         <div class="caji"><p><strong>Dirección:</strong> </p></div>
+         <div class="cajo"><p> ${cliente.address}</p></div>
+ 
+       </div>
+       </div>
+      
+     `,
+     confirmButtonText: "Cerrar",
+     confirmButtonColor: "#2C3930"
+   });
+ }
 // Editar cliente
 async function editarCliente(cliente) {
   try {
@@ -535,7 +539,7 @@ onMounted(async () => {
 });
 </script>
 
-<style >
+<style>
 .imgC {
   height: 50px;
   width: 50px;
@@ -612,9 +616,21 @@ onMounted(async () => {
   border-radius: 8px;
 }
 
+/* Asegura que el menú desplegable de q-select aparezca por encima del modal */
 .popup-select .q-menu {
-  z-index: 10000 !important;
+  z-index: 10001 !important; /* Mayor que el z-index del modal (9999) */
 }
+
+/* Aplicar z-index alto a todos los menús emergentes */
+.q-menu {
+  z-index: 10001 !important;
+}
+
+/* Clase específica para el contenido del popup */
+.select-popup-content {
+  z-index: 10001 !important;
+}
+
 .boton-personalizado {
   font-weight: 500;
   padding: 8px 20px;
